@@ -14,13 +14,14 @@ jobs:
       image: ps4dev/ps4sdk:latest
 
     steps:
+      - name: Instalar git
+        run: |
+          apt-get update -qq && apt-get install -y -qq git make curl
+
       - name: Clonar repositorio
         run: |
-          git config --global user.name "GODSTUDIOS-web"
-          git config --global user.email "elias@godstudios.dev"
           git clone https://github.com/GODSTUDIOS-web/noTrack-ps4-plugins.git /workspace
-          cd /workspace
-          ls -la
+          ls -la /workspace
 
       - name: Verificar toolchain
         run: |
@@ -31,7 +32,6 @@ jobs:
 
       - name: Baixar headers PS4 se nao existirem
         run: |
-          cd /workspace
           if [ ! -d "/PS4SDK/include/ps4" ]; then
             mkdir -p /PS4SDK/include/ps4
             cd /PS4SDK/include/ps4
@@ -47,13 +47,12 @@ jobs:
           cd /workspace
           make PS4SDK=/PS4SDK clean all
 
-      - name: Listar artefatos gerados
+      - name: Listar artefatos
         run: |
           cd /workspace
-          echo "=== PRX gerados ==="
           ls -lh *.prx
 
-      - name: Fazer upload dos .prx
+      - name: Upload .prx
         uses: actions/upload-artifact@v4
         with:
           name: ps4-plugins
