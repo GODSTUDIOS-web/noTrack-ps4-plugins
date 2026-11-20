@@ -1,0 +1,12 @@
+# PS4 PRX build
+*.prx
+*.o
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
