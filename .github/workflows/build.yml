@@ -5,33 +5,39 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:  # Permite executar manualmente
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: ps4dev/ps4sdk:latest
 
     steps:
       - name: Checkout do repositorio
         uses: actions/checkout@v4
 
-      - name: Verificar toolchain
+      - name: Instalar clang e binutils
         run: |
-          clang --version
-          echo "PS4SDK=$PS4SDK"
-          ls -la $PS4SDK/include/ || echo "SDK include nao encontrado"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clang binutils gcc-multilib make
+
+      - name: Baixar headers PS4
+        run: |
+          mkdir -p /tmp/ps4sdk/include/ps4
+          cd /tmp/ps4sdk/include/ps4
+          curl -sL https://raw.githubusercontent.com/ps4home/ps4sdk/master/include/ps4/kernel.h -o kernel.h
+          curl -sL https://raw.githubusercontent.com/ps4home/ps4sdk/master/include/ps4/pthread.h -o pthread.h
+          curl -sL https://raw.githubusercontent.com/ps4home/ps4sdk/master/include/ps4/sce_module.h -o sce_module.h
+          curl -sL https://raw.githubusercontent.com/ps4home/ps4sdk/master/include/ps4/sce_sysmodule.h -o sce_sysmodule.h
+          ls -la /tmp/ps4sdk/include/ps4/
 
       - name: Compilar plugins
         run: |
-          make clean
-          make
+          make PS4SDK=/tmp/ps4sdk clean all
 
       - name: Listar artefatos gerados
         run: |
           echo "=== PRX gerados ==="
-          ls -lh *.prx 2>/dev/null || echo "Nenhum .prx encontrado"
+          ls -lh *.prx
 
       - name: Fazer upload dos .prx como artefatos
         uses: actions/upload-artifact@v4
