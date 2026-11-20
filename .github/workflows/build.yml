@@ -10,39 +10,52 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: ps4dev/ps4sdk:latest
 
     steps:
-      - name: Checkout do repositorio
-        uses: actions/checkout@v4
-
-      - name: Instalar clang e binutils
+      - name: Clonar repositorio
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq clang binutils gcc-multilib make
+          git config --global user.name "GODSTUDIOS-web"
+          git config --global user.email "elias@godstudios.dev"
+          git clone https://github.com/GODSTUDIOS-web/noTrack-ps4-plugins.git /workspace
+          cd /workspace
+          ls -la
 
-      - name: Baixar headers PS4
+      - name: Verificar toolchain
         run: |
-          mkdir -p /tmp/ps4sdk/include/ps4
-          cd /tmp/ps4sdk/include/ps4
-          curl -sL https://raw.githubusercontent.com/ps4home/ps4sdk/master/include/ps4/kernel.h -o kernel.h
-          curl -sL https://raw.githubusercontent.com/ps4home/ps4sdk/master/include/ps4/pthread.h -o pthread.h
-          curl -sL https://raw.githubusercontent.com/ps4home/ps4sdk/master/include/ps4/sce_module.h -o sce_module.h
-          curl -sL https://raw.githubusercontent.com/ps4home/ps4sdk/master/include/ps4/sce_sysmodule.h -o sce_sysmodule.h
-          ls -la /tmp/ps4sdk/include/ps4/
+          cd /workspace
+          clang --version
+          echo "PS4SDK=$PS4SDK"
+          ls -la /PS4SDK/include/ 2>/dev/null || echo "SDK headers nao estao em /PS4SDK/include"
+
+      - name: Baixar headers PS4 se nao existirem
+        run: |
+          cd /workspace
+          if [ ! -d "/PS4SDK/include/ps4" ]; then
+            mkdir -p /PS4SDK/include/ps4
+            cd /PS4SDK/include/ps4
+            curl -sL https://raw.githubusercontent.com/ps4home/ps4sdk/master/include/ps4/kernel.h -o kernel.h
+            curl -sL https://raw.githubusercontent.com/ps4home/ps4sdk/master/include/ps4/pthread.h -o pthread.h
+            curl -sL https://raw.githubusercontent.com/ps4home/ps4sdk/master/include/ps4/sce_module.h -o sce_module.h
+            curl -sL https://raw.githubusercontent.com/ps4home/ps4sdk/master/include/ps4/sce_sysmodule.h -o sce_sysmodule.h
+            ls -la /PS4SDK/include/ps4/
+          fi
 
       - name: Compilar plugins
         run: |
-          make PS4SDK=/tmp/ps4sdk clean all
+          cd /workspace
+          make PS4SDK=/PS4SDK clean all
 
       - name: Listar artefatos gerados
         run: |
+          cd /workspace
           echo "=== PRX gerados ==="
           ls -lh *.prx
 
-      - name: Fazer upload dos .prx como artefatos
+      - name: Fazer upload dos .prx
         uses: actions/upload-artifact@v4
         with:
           name: ps4-plugins
-          path: |
-            *.prx
+          path: /workspace/*.prx
           if-no-files-found: error
